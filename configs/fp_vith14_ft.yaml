@@ -1,0 +1,44 @@
+meta:
+  seed: 0
+  device: null                 # null -> cuda if available; pin a GPU with CUDA_VISIBLE_DEVICES
+data:
+  fin_jepa_root: ../fin-jepa/scratch   # dataset, P x K sampler, losses, eval protocol
+  P: 16                        # identities per batch
+  K: 4                         # images per identity (spread across sensors)
+  cross_frac: 0.75             # share of batch identities drawn from multi-sensor fingers
+  val_frac: 0.15               # person-disjoint validation carve-out of the training split
+  crop_margin: 32              # train canvas = img_size + margin, then RandomCrop
+  rotate_deg: 15
+  steps_per_epoch: null        # null -> ~one pass over the training images
+  num_workers: 8
+  eval_batch_size: 64
+model:
+  arch: vit_huge
+  patch_size: 14
+  img_size: 224
+  pretrained: logs/fp_vith14_pretrain/jepa-latest.pth.tar  # stage-1 fingerprint I-JEPA (configs/fp_vith14_pretrain.yaml); IN1K: pretrained/model.safetensors
+  n_frozen: 24                 # of 32 blocks; 0 = full fine-tune (does not fit 16 GB)
+  drop_path_rate: 0.1
+  head_hidden: 1024
+  embed_dim: 128
+  use_head: true
+  grad_checkpointing: true
+optimization:
+  epochs: 30
+  warmup_epochs: 2
+  lr: 5.0e-5                   # top block; lower blocks get lr * layer_decay^depth_from_top
+  layer_decay: 0.85
+  head_lr: 1.0e-3
+  weight_decay: 0.05
+  clip_grad: 1.0
+  tau: 0.1
+  cross_sensor_positives: false
+  w_inv: 0.1
+  val_every: 1
+  validate_zero_shot: true
+evaluation:
+  max_impostors: 2000000
+  n_boot: 200
+logging:
+  folder: logs/fp_vith14
+  log_every: 20
